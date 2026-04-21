@@ -1,0 +1,35 @@
+version: "3.9"
+
+# Shared dev infrastructure used across modules 05, 06, 10, 11.
+# Start it once with: docker compose -f docker/docker-compose.yml up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fapi_postgres
+    environment:
+      POSTGRES_USER: fapi
+      POSTGRES_PASSWORD: fapi
+      POSTGRES_DB: fapi
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  mongo:
+    image: mongo:7
+    container_name: fapi_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: fapi_redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  pg_data:
+  mongo_data:
