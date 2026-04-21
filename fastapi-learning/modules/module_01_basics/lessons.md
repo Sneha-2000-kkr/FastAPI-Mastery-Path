@@ -48,7 +48,51 @@ In a real backend:
 
 This separation is overkill for a 1-file demo and exactly right for anything that ships.
 
-## 4. Common Mistakes
+## 4. A Note on `__init__.py`
+
+**You won't see `__init__.py` files in this module.** Here's why:
+
+### Historical Context (Python < 3.3)
+Before Python 3.3, you **had to** place an empty `__init__.py` in every directory to mark it as a package. Without it, Python's import system wouldn't recognize subdirectories as importable modules.
+
+```
+old_style/
+├── models/
+│   ├── __init__.py      ← Required; otherwise subdirectory ignored
+│   └── user.py
+```
+
+### Modern Python (3.3+): Namespace Packages
+Python 3.3 introduced **namespace packages**, which allow directories to act as packages *without* `__init__.py`. This is now the default behavior:
+
+```
+modern_style/
+├── models/
+│   └── user.py          ← Works fine; no __init__.py needed
+```
+
+### Why We Removed Them from This Module
+1. **Reduced clutter** — fewer files to reason about when learning
+2. **Modern standard** — since Python 3.11+, it's the convention
+3. **Still importable** — `from app.models import User` works identically
+4. **Clearer focus** — attention goes to logic, not boilerplate
+
+### When Should You Use `__init__.py`?
+Use `__init__.py` **only** when you need:
+- **Package initialization code** → code that runs when the package is imported
+  ```python
+  # app/models/__init__.py
+  from .user import User
+  from .item import Item
+  __all__ = ["User", "Item"]  # Public API
+  ```
+- **Explicit public API** → control what is exported by the package
+- **Legacy Python < 3.3 environments** → required by older runtimes
+- **Type checker hints** — some tooling recognizes `__init__.py` as an explicit package marker
+
+For this course: **we skip empty `__init__.py` files** to keep the codebase clean and focused on FastAPI patterns.
+
+## 6. Common Mistakes
 
 - **Putting DB calls in the handler.** Hard to test, impossible to reuse from a worker.
 - **Returning ORM objects directly.** Leaks columns you didn't mean to expose (e.g. `password_hash`). Always project to a response schema.
@@ -56,7 +100,7 @@ This separation is overkill for a 1-file demo and exactly right for anything tha
 - **Catching `Exception` in handlers.** Hides bugs. Let exception handlers (module 08) shape the response.
 - **Hard-coding config.** Use `Settings`. Module 04 expands on this.
 
-## 5. Senior-Level Insights
+## 7. Senior-Level Insights
 
 - **Sync vs async handlers**: prefer `async def`. Use `def` only when the work is purely CPU-bound and short, or when you must call a blocking C-extension and there is no async alternative. Mixing the two is fine; FastAPI handles it.
 - **Path operation order matters**: more specific routes must be declared **before** more general ones (`/items/me` before `/items/{id}`).
@@ -64,10 +108,10 @@ This separation is overkill for a 1-file demo and exactly right for anything tha
 - **Avoid `from app import *`** — it breaks the import-time signature inspection because of forward references.
 - **`response_model_exclude_none=True`** is a footgun: clients then can't distinguish "absent" from "null" — important in PATCH semantics.
 
-## 6. Hands-on Task
+## 8. Hands-on Task
 
 Add a `PATCH /items/{item_id}` endpoint that accepts a partial `ItemUpdate` schema (all fields optional) and updates only the provided keys. The handler must remain a thin wrapper that delegates to a new `update_item` service method.
 
-## 7. Mini Project
+## 9. Mini Project
 
 Extend the in-memory repository with a `search(q: str)` method and expose `GET /items/search?q=...`. Returns items whose `name` contains the query (case-insensitive). Add a `total` field in the response using the shared `Page` model from `shared/pagination.py`.
